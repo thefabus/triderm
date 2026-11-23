@@ -1,0 +1,164 @@
+# Settings used for the paper.
+
+[paths]
+# Overridden by TRIDERM_DATA_ROOT and TRIDERM_OUT; the input paths below are relative to data_root.
+data_root = "data"
+out_root = "out"
+expert_triplets = "annotations/expert_triplets.db"   # SQLite (table `tripletresult`) or CSV
+descriptions = "descriptions/expert_descriptions.txt" # one "<photo_id>: <text>" line per image
+photos = "images/photos"                               # <photo_id>.<ext>
+masks = "images/masks"                                 # <photo_id>_wounds_<k>.png
+excluded_photos = "excluded_photos.txt"                # optional
+
+[llm]
+# Any OpenAI-compatible endpoint (the paper used a local vLLM server).
+# Overridden by LLM_BASE_URL; the key is read from LLM_API_KEY.
+base_url = "http://localhost:8000/v1"
+seed = 42
+max_concurrent = 300
+
+[llm.oracles]  # triplet oracle name -> served model id
+"gpt-oss-120b" = "openai/gpt-oss-120b"
+"gpt-oss-20b" = "openai/gpt-oss-20b"
+"medgemma-27b" = "google/medgemma-27b-it"
+
+[soe]  # fitted on the photos that occur in the expert triplets, anchor-balanced sampling
+dim = 4
+epochs = 50
+batch_size = 2048
+learning_rate = 0.05
+delta = 0.0          # hinge margin
+patience = 30        # epochs without improvement of the training triplet error
+eval_every = 10
+seed = 42
+
+[soe_ablation]  # Table 2a
+oracle = "gpt-oss-120b"
+dims = [2, 3, 4, 5, 6]
+budget_percents = [0.1, 1, 10, 100]
+oracles = ["medgemma-27b", "gpt-oss-20b", "gpt-oss-120b"]
+
+[text_encoders]  # sentence-transformers baselines
+minilm = "sentence-transformers/all-MiniLM-L6-v2"
+roberta = "sentence-transformers/all-roberta-large-v1"
+pubmedbert = "pritamdeka/S-PubMedBert-MS-MARCO"
+
+[llm_embeddings]  # mean-pooled hidden-state baselines
+"gpt-oss-120b" = "openai/gpt-oss-120b"
+"medgemma-27b" = "google/medgemma-27b-it"
+
+[vision.zero_shot]  # backbone -> input size (each model's training resolution)
+siglip = 224
+panderm = 224
+sam3 = 1024
+medgemma = 896
+dinov3 = 224
+dermlip = 224
+
+[vision.train.triderm]  # frozen DermLIP + attention pooling + predictor, trained with VICReg
+backbone = "dermlip"
+input_size = 224
+pooling = "attention"
+loss = "vicreg"
+output_dim = 512
+epochs = 50
+batch_size = 32
+learning_rate = 1e-4
+weight_decay = 1e-5
+seed = 42
+
+# Table 2b ablations: each variant overrides fields of `triderm`.
+[vision.train.mean-pooling]
+pooling = "mean"
+
+[vision.train.triplet]
+loss = "triplet"
+batch_size = 8
+
+[vision.train.contrastive]
+loss = "supcon"
+batch_size = 128
+learning_rate = 1e-3
+
+[fusion]
+alpha = 0.7  # weight of the vision modality in uncertainty-aware fusion
+
+# Table 1; embedding names refer to <out_root>/embeddings/<name>.npz.
+[[table1]]
+block = "text"
+label = "MiniLM"
+embedding = "text-minilm"
+
+[[table1]]
+block = "text"
+label = "gpt-oss-120b mean"
+embedding = "llm-gpt-oss-120b-mean"
+
+[[table1]]
+block = "text"
+label = "MedGemma-27B mean"
+embedding = "llm-medgemma-27b-mean"
+
+[[table1]]
+block = "text"
+label = "PubMedBERT"
+embedding = "text-pubmedbert"
+
+[[table1]]
+block = "text"
+label = "RoBERTa"
+embedding = "text-roberta"
+
+[[table1]]
+block = "text"
+label = "TriDerm (Text only)"
+embedding = "soe-gpt-oss-120b-4d"
+
+[[table1]]
+block = "vision"
+label = "MedGemma"
+embedding = "vision-zs-medgemma"
+
+[[table1]]
+block = "vision"
+label = "SigLIP"
+embedding = "vision-zs-siglip"
+
+[[table1]]
+block = "vision"
+label = "SAM3"
+embedding = "vision-zs-sam3"
+
+[[table1]]
+block = "vision"
+label = "PanDerm"
+embedding = "vision-zs-panderm"
+
+[[table1]]
+block = "vision"
+label = "DINOv3"
+embedding = "vision-zs-dinov3"
+
+[[table1]]
+block = "vision"
+label = "DermLIP"
+embedding = "vision-zs-dermlip"
+
+[[table1]]
+block = "vision"
+label = "TriDerm (Vision only)"
+embedding = "vision-triderm"
+
+[[table1]]
+block = "fused"
+label = "TriDerm (similarity)"
+vision = "vision-triderm"
+text = "soe-gpt-oss-120b-4d"
+fusion = "similarity"
+
+[[table1]]
+block = "fused"
+label = "TriDerm (uncertainty)"
+vision = "vision-triderm"
+text = "soe-gpt-oss-120b-4d"
+fusion = "uncertainty"

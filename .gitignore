@@ -1,0 +1,24 @@
+# Data and outputs (never commit patient data or derived artifacts)
+data/
+out/
+*.npz
+*.pkl
+*.sqlite3
+*.db
+# Secrets
+.env
+.env.*
+# Python / tooling caches
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
